@@ -25,7 +25,7 @@
     "web": {
       "bundler": "w",
       "output": "single",
-      "favicon": "./public/icon-192.png"
+      "favicon": "./assets/icon.png"
     
     }
   }

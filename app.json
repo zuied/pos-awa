@@ -23,7 +23,7 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "bundler": "metro",
+      "bundler": "w",
       "output": "single",
       "favicon": "./public/icon-192.png"
     

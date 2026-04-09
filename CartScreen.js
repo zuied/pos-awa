@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
   },
   total: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     marginBottom: 8,
   },

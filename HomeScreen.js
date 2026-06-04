@@ -262,7 +262,7 @@ const handlePay = async () => {
         <Text style={{fontSize:18,fontWeight:'bold'}}>🧾 Pesanan</Text>
         <FlatList data={cart} renderItem={renderCartItem} keyExtractor={(i)=>i.id_produk} style={{flexGrow:0}} />
 
-        <Text style={{fontSize:18,fontWeight:'bold'}}>Total: Rp {totalHarga.toLocaleString("id-ID")}</Text>
+        <Text style={{fontSize:18,fontWeight:'bold'}}>Total Dibayar Rp{totalHarga.toLocaleString("id-ID")}</Text>
 
         <View style={{flexDirection:'row', marginVertical:6}}>
           <TouchableOpacity onPress={()=>setMetode("Tunai")} style={{marginRight:10, padding:6, backgroundColor: metode==='Tunai'?'#ddd':'#fff'}}><Text>Tunai</Text></TouchableOpacity>

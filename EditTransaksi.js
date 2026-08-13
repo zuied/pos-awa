@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  ActivityIndicator,
   StyleSheet,
   ScrollView,
   Image,
@@ -39,6 +40,7 @@ export default function EditTransaksi({ route, navigation }) {
       : "Tunai"
   );
   const [loadingMenu, setLoadingMenu] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadMenu();
@@ -110,10 +112,12 @@ export default function EditTransaksi({ route, navigation }) {
   };
 
   const save = async () => {
+    if (saving) return;
     if (items.length === 0) {
       showAlert("Gagal", "Transaksi harus memiliki minimal 1 item");
       return;
     }
+    setSaving(true);
     try {
       const payload = {
         id_transaksi: data.id_transaksi || data.id,
@@ -130,6 +134,8 @@ export default function EditTransaksi({ route, navigation }) {
       }
     } catch (err) {
       showAlert("Error", "Terjadi kesalahan: " + err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -292,8 +298,20 @@ export default function EditTransaksi({ route, navigation }) {
             Rp {total.toLocaleString("id-ID")}
           </Text>
         </View>
-        <TouchableOpacity style={styles.saveBtn} onPress={save}>
-          <Text style={styles.saveText}>💾 SIMPAN PERUBAHAN</Text>
+        <TouchableOpacity
+          style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+          onPress={save}
+          disabled={saving}
+          activeOpacity={0.8}
+        >
+          {saving ? (
+            <View style={styles.saveLoadingRow}>
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={styles.saveText}> Menyimpan...</Text>
+            </View>
+          ) : (
+            <Text style={styles.saveText}>💾 SIMPAN PERUBAHAN</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -580,6 +598,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     elevation: 2,
+  },
+  saveBtnDisabled: {
+    opacity: 0.6,
+  },
+  saveLoadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   saveText: {
     color: "#fff",

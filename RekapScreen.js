@@ -115,19 +115,50 @@ export default function RekapScreen() {
   };
 
   // ================= HELPER PARSE TANGGAL =================
+  // Bangun Date secara numerik (lokal) supaya tidak bergantung pada
+  // cara engine browser/OS meng-parse string (UTC vs lokal).
   const parseTanggal = (val) => {
     if (!val) return null;
     try {
-      const [tglPart, jamPart] = val.split(",");
+      let tglPart, jamPart;
+      if (val.includes(",")) {
+        [tglPart, jamPart] = val.split(",");
+      } else {
+        const sp = val.trim().split(/\s+/);
+        tglPart = sp[0];
+        jamPart = sp[1] || "";
+      }
       if (!tglPart) return null;
-      let [dd, mm, yyyy] = tglPart.trim().split("/");
-      dd = dd.padStart(2, "0");
-      mm = mm.padStart(2, "0");
-      const jamFix = jamPart ? jamPart.trim().replace(/\./g, ":") : "00:00:00";
-      return new Date(`${yyyy}-${mm}-${dd}T${jamFix}`);
+      const [ddRaw, mmRaw, yyyy] = tglPart.trim().split("/");
+      if (!ddRaw || !mmRaw || !yyyy) return null;
+      const jamFix = (jamPart || "").trim().replace(/\./g, ":");
+      const [hh, mm, ss] = jamFix.split(":");
+      return new Date(
+        Number(yyyy),
+        Number(mmRaw) - 1,
+        Number(ddRaw),
+        Number(hh) || 0,
+        Number(mm) || 0,
+        Number(ss) || 0
+      );
     } catch {
       return null;
     }
+  };
+
+  // Nilai <input type="date"> ("YYYY-MM-DD") -> Date lokal tengah malam
+  const parseInputDate = (val) => {
+    if (!val) return null;
+    const [y, m, d] = val.split("-").map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d);
+  };
+
+  // Date -> nilai <input type="date"> ("YYYY-MM-DD")
+  const toInputValue = (d) => {
+    if (!d) return "";
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   };
 
   const parseItems = (trx) => {
@@ -394,16 +425,14 @@ export default function RekapScreen() {
               <input
                 type="date"
                 style={styles.webInput}
-                onChange={(e) =>
-                  setTglAwal(e.target.value ? new Date(e.target.value) : null)
-                }
+                value={toInputValue(tglAwal)}
+                onChange={(e) => setTglAwal(parseInputDate(e.target.value))}
               />
               <input
                 type="date"
                 style={styles.webInput}
-                onChange={(e) =>
-                  setTglAkhir(e.target.value ? new Date(e.target.value) : null)
-                }
+                value={toInputValue(tglAkhir)}
+                onChange={(e) => setTglAkhir(parseInputDate(e.target.value))}
               />
             </>
           ) : (

@@ -1,25 +1,10 @@
 // ================= CONFIG =================
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const GAS_URL =
   "https://script.google.com/macros/s/AKfycbyEHqqPYm65WZ2koCrfGFi1sbFatMwI4yYc_c4SQN0zro4ACjrv0GQME2capnxJWa1j/exec";
 
-const OFFLINE_QUEUE_KEY = "offline_transaksi_queue";
 const TIMEOUT_MS = 15000;
 const MAX_RETRY = 2;
-
-// ================= OFFLINE QUEUE =================
-export const addToOfflineQueue = async (transaksi) => {
-  try {
-    const existing = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
-    const queue = existing ? JSON.parse(existing) : [];
-    queue.push({ ...transaksi, offline_id: Date.now() });
-    await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-    console.log("Disimpan ke offline queue");
-  } catch (error) {
-    console.log("Gagal simpan queue", error);
-  }
-};
 
 // ================= HELPER =================
 function sleep(ms) {

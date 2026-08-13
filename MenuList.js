@@ -14,9 +14,9 @@ export default function MenuList({ menu: menuProp, cart = [], onAddToCart, onDec
   const [loading, setLoading] = useState(!menuProp || menuProp.length === 0);
 
   useEffect(() => {
-    // Jika menu sudah dikirim dari parent (HomeScreen), langsung pakai
-    if (menuProp && menuProp.length > 0) {
-      setMenuItems(menuProp);
+    // Jika menu dikirim dari parent (HomeScreen), langsung pakai — bahkan saat kosong
+    if (menuProp !== undefined) {
+      setMenuItems(menuProp || []);
       setLoading(false);
       return;
     }

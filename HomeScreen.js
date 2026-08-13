@@ -193,7 +193,13 @@ export default function HomeScreen({ navigation }) {
         Alert.alert("⏳ Duplikat", "Transaksi sudah diproses sebelumnya");
         clearCart();
       } else {
-        Alert.alert("❌ Gagal", res?.message || "Terjadi kesalahan");
+        await saveToQueue(payload);
+        Alert.alert(
+          "⚠️ Gagal Terkirim",
+          (res?.message || "Terjadi kesalahan") +
+            "\nTransaksi disimpan ke antrian offline 📦"
+        );
+        clearCart();
       }
     } catch (err) {
       console.log("❌ handlePay error:", err);

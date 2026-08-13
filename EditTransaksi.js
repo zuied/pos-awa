@@ -34,7 +34,11 @@ export default function EditTransaksi({ route, navigation }) {
 
   const [items, setItems] = useState(parseItems(data.item_dibeli));
   const [menu, setMenu] = useState([]);
-  const [metode, setMetode] = useState(data.metode_pembayaran || "Tunai");
+  const [metode, setMetode] = useState(
+    (data.metode_pembayaran || "Tunai").toUpperCase() === "QRIS"
+      ? "QRIS"
+      : "Tunai"
+  );
   const [loadingMenu, setLoadingMenu] = useState(true);
 
   useEffect(() => {

@@ -234,6 +234,10 @@ export default function RekapScreen() {
 
   // ================= EXPORT EXCEL =================
   const exportExcel = () => {
+    if (Platform.OS !== "web") {
+      Alert.alert("Info", "Export Excel hanya tersedia di versi web");
+      return;
+    }
     const rows = [];
     filteredData.forEach((trx) => {
       const items = parseItems(trx);
@@ -257,6 +261,10 @@ export default function RekapScreen() {
 
   // ================= EXPORT PDF =================
   const exportPDF = () => {
+    if (Platform.OS !== "web") {
+      Alert.alert("Info", "Export PDF hanya tersedia di versi web");
+      return;
+    }
     const doc = new jsPDF();
     doc.text("Rekap Detail Penjualan", 14, 15);
     let y = 25;

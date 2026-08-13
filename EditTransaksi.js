@@ -3,13 +3,12 @@ import {
   View,
   Text,
   TouchableOpacity,
-  FlatList,
-  Alert,
   StyleSheet,
   ScrollView,
   Image,
 } from "react-native";
 import { getMenu, editTransaksi } from "./api";
+import { confirmAlert, showAlert } from "./alert";
 
 export default function EditTransaksi({ route, navigation }) {
   const data = route?.params?.data || {};
@@ -95,14 +94,12 @@ export default function EditTransaksi({ route, navigation }) {
   };
 
   const hapusItem = (index) => {
-    Alert.alert("Hapus Item", "Yakin hapus item ini?", [
-      { text: "Batal", style: "cancel" },
-      {
-        text: "Hapus",
-        style: "destructive",
-        onPress: () => setItems((prev) => prev.filter((_, i) => i !== index)),
-      },
-    ]);
+    confirmAlert(
+      "Hapus Item",
+      "Yakin hapus item ini?",
+      () => setItems((prev) => prev.filter((_, i) => i !== index)),
+      { yesText: "Hapus", destructive: true }
+    );
   };
 
   const total = items.reduce((sum, i) => sum + i.harga * i.jumlah, 0);
@@ -114,7 +111,7 @@ export default function EditTransaksi({ route, navigation }) {
 
   const save = async () => {
     if (items.length === 0) {
-      Alert.alert("Gagal", "Transaksi harus memiliki minimal 1 item");
+      showAlert("Gagal", "Transaksi harus memiliki minimal 1 item");
       return;
     }
     try {
@@ -127,14 +124,12 @@ export default function EditTransaksi({ route, navigation }) {
       };
       const res = await editTransaksi(payload);
       if (res?.status === "success") {
-        Alert.alert("✅ Sukses", "Transaksi diperbarui", [
-          { text: "OK", onPress: () => navigation.goBack() },
-        ]);
+        showAlert("✅ Sukses", "Transaksi diperbarui", () => navigation.goBack());
       } else {
-        Alert.alert("Gagal", res?.message || "Update gagal");
+        showAlert("Gagal", res?.message || "Update gagal");
       }
     } catch (err) {
-      Alert.alert("Error", "Terjadi kesalahan: " + err.message);
+      showAlert("Error", "Terjadi kesalahan: " + err.message);
     }
   };
 

@@ -5,11 +5,11 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
-  Alert,
   SafeAreaView,
   StyleSheet,
 } from "react-native";
 import MenuList from "./MenuList";
+import { showAlert } from "./alert";
 import { getMenu, simpanTransaksi } from "./api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
@@ -140,11 +140,11 @@ export default function HomeScreen({ navigation }) {
     if (now - lastPayTime < PAY_COOLDOWN) return;
 
     if (cart.length === 0) {
-      Alert.alert("Keranjang kosong", "Tambahkan menu terlebih dahulu");
+      showAlert("Keranjang kosong", "Tambahkan menu terlebih dahulu");
       return;
     }
     if (metode === "Tunai" && Number(bayar) < totalHarga) {
-      Alert.alert(
+      showAlert(
         "Uang kurang",
         `Total Rp ${totalHarga.toLocaleString("id-ID")}, uang bayar Rp ${Number(bayar).toLocaleString("id-ID")}`
       );
@@ -178,7 +178,7 @@ export default function HomeScreen({ navigation }) {
 
       if (!net.isConnected) {
         await saveToQueue(payload);
-        Alert.alert("Offline 📴", "Transaksi disimpan ke antrian, akan dikirim saat online");
+        showAlert("Offline 📴", "Transaksi disimpan ke antrian, akan dikirim saat online");
         clearCart();
         return;
       }
@@ -187,14 +187,14 @@ export default function HomeScreen({ navigation }) {
       console.log("📨 RESPONSE:", res);
 
       if (res?.status === "success") {
-        Alert.alert("✅ Berhasil", "Transaksi tersimpan!");
+        showAlert("✅ Berhasil", "Transaksi tersimpan!");
         clearCart();
       } else if (res?.status === "duplicate") {
-        Alert.alert("⏳ Duplikat", "Transaksi sudah diproses sebelumnya");
+        showAlert("⏳ Duplikat", "Transaksi sudah diproses sebelumnya");
         clearCart();
       } else {
         await saveToQueue(payload);
-        Alert.alert(
+        showAlert(
           "⚠️ Gagal Terkirim",
           (res?.message || "Terjadi kesalahan") +
             "\nTransaksi disimpan ke antrian offline 📦"
@@ -204,7 +204,7 @@ export default function HomeScreen({ navigation }) {
     } catch (err) {
       console.log("❌ handlePay error:", err);
       await saveToQueue(payload);
-      Alert.alert("Network Error", "Transaksi disimpan ke antrian offline 📦");
+      showAlert("Network Error", "Transaksi disimpan ke antrian offline 📦");
       clearCart();
     } finally {
       clearTimeout(safetyTimeout);

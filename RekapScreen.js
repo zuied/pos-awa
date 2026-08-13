@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
-  FlatList,
   SafeAreaView,
   StyleSheet,
   ScrollView,
@@ -10,8 +9,8 @@ import {
   TouchableOpacity,
   Platform,
   RefreshControl,
-  Alert,
 } from "react-native";
+import { confirmAlert, showAlert } from "./alert";
 import { LineChart } from "react-native-chart-kit";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation } from "@react-navigation/native";
@@ -21,6 +20,8 @@ import jsPDF from "jspdf";
 import { useFocusEffect } from "@react-navigation/native";
 
 const screenWidth = Dimensions.get("window").width;
+const LIST_BASE_COUNT = 100;
+const LIST_STEP = 100;
 
 export default function RekapScreen() {
   const navigation = useNavigation();
@@ -33,6 +34,14 @@ export default function RekapScreen() {
   const [tglAkhir, setTglAkhir] = useState(null);
   const [showAwal, setShowAwal] = useState(false);
   const [showAkhir, setShowAkhir] = useState(false);
+
+  // Paginasi list transaksi (render cepat, list selalu sama persis dengan data terfilter)
+  const [visibleCount, setVisibleCount] = useState(LIST_BASE_COUNT);
+
+  // Reset paginasi setiap filter berubah
+  useEffect(() => {
+    setVisibleCount(LIST_BASE_COUNT);
+  }, [tglAwal, tglAkhir]);
 
   // ================= LOAD DATA =================
   useFocusEffect(
@@ -74,43 +83,37 @@ export default function RekapScreen() {
   // ================= VOID TRANSAKSI =================
   const handleVoid = async (id) => {
     if (!id) {
-      Alert.alert("Error", "ID transaksi tidak ditemukan");
+      showAlert("Error", "ID transaksi tidak ditemukan");
       return;
     }
 
-    Alert.alert(
+    confirmAlert(
       "VOID Transaksi",
       `Yakin ingin menghapus transaksi #${id}?`,
-      [
-        { text: "Batal", style: "cancel" },
-        {
-          text: "Hapus",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const res = await voidTransaksi(id);
-              console.log("Void Result:", res);
+      async () => {
+        try {
+          const res = await voidTransaksi(id);
+          console.log("Void Result:", res);
 
-              if (res?.status === "success") {
-                // Tutup expand terlebih dahulu
-                setExpandedId(null);
-                // Hapus dari state lokal
-                setData((prev) =>
-                  prev.filter(
-                    (trx) => String(trx.id_transaksi) !== String(id)
-                  )
-                );
-                Alert.alert("Sukses", "Transaksi berhasil dihapus");
-              } else {
-                Alert.alert("Gagal", res?.message || "Gagal menghapus transaksi");
-              }
-            } catch (err) {
-              console.log("Void error:", err);
-              Alert.alert("Error", "Terjadi kesalahan saat void transaksi");
-            }
-          },
-        },
-      ]
+          if (res?.status === "success") {
+            // Tutup expand terlebih dahulu
+            setExpandedId(null);
+            // Hapus dari state lokal
+            setData((prev) =>
+              prev.filter(
+                (trx) => String(trx.id_transaksi) !== String(id)
+              )
+            );
+            showAlert("Sukses", "Transaksi berhasil dihapus");
+          } else {
+            showAlert("Gagal", res?.message || "Gagal menghapus transaksi");
+          }
+        } catch (err) {
+          console.log("Void error:", err);
+          showAlert("Error", "Terjadi kesalahan saat void transaksi");
+        }
+      },
+      { yesText: "Hapus", destructive: true }
     );
   };
 
@@ -266,7 +269,7 @@ export default function RekapScreen() {
   // ================= EXPORT EXCEL =================
   const exportExcel = () => {
     if (Platform.OS !== "web") {
-      Alert.alert("Info", "Export Excel hanya tersedia di versi web");
+      showAlert("Info", "Export Excel hanya tersedia di versi web");
       return;
     }
     const rows = [];
@@ -293,7 +296,7 @@ export default function RekapScreen() {
   // ================= EXPORT PDF =================
   const exportPDF = () => {
     if (Platform.OS !== "web") {
-      Alert.alert("Info", "Export PDF hanya tersedia di versi web");
+      showAlert("Info", "Export PDF hanya tersedia di versi web");
       return;
     }
     const doc = new jsPDF();
@@ -337,7 +340,7 @@ export default function RekapScreen() {
   // ================= PRINT =================
   const printLaporanHarian = () => {
     if (Platform.OS !== "web") {
-      Alert.alert("Info", "Print hanya tersedia di versi web");
+      showAlert("Info", "Print hanya tersedia di versi web");
       return;
     }
     let tunai = 0;
@@ -385,7 +388,7 @@ export default function RekapScreen() {
     `;
 
     const win = window.open("", "_blank");
-    if (!win) return Alert.alert("Popup diblok oleh browser");
+    if (!win) return showAlert("Info", "Popup diblok oleh browser");
     win.document.write(html);
     win.document.close();
     setTimeout(() => win.print(), 500);
@@ -401,6 +404,11 @@ export default function RekapScreen() {
   }
 
   const isMobile = screenWidth < 768;
+
+  const resetFilter = () => {
+    setTglAwal(null);
+    setTglAkhir(null);
+  };
 
   // ================= UI =================
   return (
@@ -471,6 +479,26 @@ export default function RekapScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* STATUS FILTER AKTIF */}
+        {(tglAwal || tglAkhir) && (
+          <View style={styles.filterInfo}>
+            <Text style={styles.filterInfoText}>
+              Filter aktif:{" "}
+              {tglAwal
+                ? tglAwal.toLocaleDateString("id-ID")
+                : "(sebelum tgl akhir)"}{" "}
+              –{" "}
+              {tglAkhir
+                ? tglAkhir.toLocaleDateString("id-ID")
+                : "(setelah tgl awal)"}{" "}
+              • {jumlahTransaksi} transaksi
+            </Text>
+            <TouchableOpacity style={styles.filterReset} onPress={resetFilter}>
+              <Text style={styles.filterResetText}>✕ Reset</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* KPI */}
         <View
           style={[
@@ -532,101 +560,105 @@ export default function RekapScreen() {
 
         {/* LIST TRANSAKSI */}
         <Text style={styles.sectionTitle}>📋 List Transaksi</Text>
-        <FlatList
-          data={filteredData}
-          keyExtractor={(item) => String(item.id_transaksi)}
-          initialNumToRender={20}
-          maxToRenderPerBatch={20}
-          windowSize={10}
-          removeClippedSubviews={true}
-          scrollEnabled={false}
-          renderItem={({ item }) => {
-            // Gunakan id_transaksi yang sudah dinormalisasi menjadi String
-            const trxId = item.id_transaksi;
-            const isExpanded = expandedId === trxId;
-            const items = parseItems(item);
-            const totalQty = items.reduce(
-              (sum, it) => sum + Number(it.jumlah || 0),
-              0
-            );
+        {filteredData.slice(0, visibleCount).map((item, index) => {
+          // Gunakan id_transaksi yang sudah dinormalisasi menjadi String
+          const trxId = item.id_transaksi;
+          const isExpanded = expandedId === trxId;
+          const items = parseItems(item);
+          const totalQty = items.reduce(
+            (sum, it) => sum + Number(it.jumlah || 0),
+            0
+          );
 
-            return (
-              <TouchableOpacity
-                style={[styles.item, isExpanded && styles.itemExpanded]}
-                onPress={() =>
-                  setExpandedId(isExpanded ? null : trxId)
-                }
-                activeOpacity={0.85}
-              >
-                <Text style={styles.idText}>#{trxId || "-"}</Text>
+          return (
+            <TouchableOpacity
+              // key unik: id bisa duplikat di data → tambahkan index agar React
+              // tidak salah mencocokkan saat list berubah (mencegah kartu basi)
+              key={`${trxId}-${index}`}
+              style={[styles.item, isExpanded && styles.itemExpanded]}
+              onPress={() => setExpandedId(isExpanded ? null : trxId)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.idText}>#{trxId || "-"}</Text>
 
-                <Text style={styles.time}>
-                  🕒 {item.waktu_transaksi}
+              <Text style={styles.time}>
+                🕒 {item.waktu_transaksi}
+              </Text>
+
+              <View style={styles.rowBetween}>
+                <Text style={styles.total}>
+                  Rp{" "}
+                  {Number(item.total_harga || 0).toLocaleString("id-ID")}
                 </Text>
-
-                <View style={styles.rowBetween}>
-                  <Text style={styles.total}>
-                    Rp{" "}
-                    {Number(item.total_harga || 0).toLocaleString("id-ID")}
-                  </Text>
-                  <Text style={styles.metodeBadge}>
-                    {item.metode_pembayaran}
-                  </Text>
-                </View>
-
-                <Text style={styles.qtyInfo}>
-                  {items.length} item • {totalQty} pcs
+                <Text style={styles.metodeBadge}>
+                  {item.metode_pembayaran}
                 </Text>
+              </View>
 
-                {/* DETAIL + TOMBOL AKSI — tampil hanya saat expanded */}
-                {isExpanded && (
-                  <View style={styles.detailBox}>
-                    {/* Detail Item */}
-                    {items.length > 0 ? (
-                      items.map((it, idx) => (
-                        <Text key={idx} style={styles.detailText}>
-                          • {it.nama_produk} ×{it.jumlah} — Rp{" "}
-                          {(
-                            Number(it.harga || 0) * Number(it.jumlah || 0)
-                          ).toLocaleString("id-ID")}
-                        </Text>
-                      ))
-                    ) : (
-                      <Text style={styles.detailText}>
-                        (Data item tidak tersedia)
+              <Text style={styles.qtyInfo}>
+                {items.length} item • {totalQty} pcs
+              </Text>
+
+              {/* DETAIL + TOMBOL AKSI — tampil hanya saat expanded */}
+              {isExpanded && (
+                <View style={styles.detailBox}>
+                  {/* Detail Item */}
+                  {items.length > 0 ? (
+                    items.map((it, idx) => (
+                      <Text key={idx} style={styles.detailText}>
+                        • {it.nama_produk} ×{it.jumlah} — Rp{" "}
+                        {(
+                          Number(it.harga || 0) * Number(it.jumlah || 0)
+                        ).toLocaleString("id-ID")}
                       </Text>
-                    )}
+                    ))
+                  ) : (
+                    <Text style={styles.detailText}>
+                      (Data item tidak tersedia)
+                    </Text>
+                  )}
 
-                    {/* TOMBOL EDIT & VOID */}
-                    <View style={styles.actionRow}>
-                      <TouchableOpacity
-                        style={styles.editBtn}
-                        onPress={(e) => {
-                          e.stopPropagation && e.stopPropagation();
-                          navigation.navigate("EditTransaksi", {
-                            data: item,
-                          });
-                        }}
-                      >
-                        <Text style={styles.actionBtnText}>✏️ EDIT</Text>
-                      </TouchableOpacity>
+                  {/* TOMBOL EDIT & VOID */}
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      onPress={(e) => {
+                        e.stopPropagation && e.stopPropagation();
+                        navigation.navigate("EditTransaksi", {
+                          data: item,
+                        });
+                      }}
+                    >
+                      <Text style={styles.actionBtnText}>✏️ EDIT</Text>
+                    </TouchableOpacity>
 
-                      <TouchableOpacity
-                        style={styles.voidBtn}
-                        onPress={(e) => {
-                          e.stopPropagation && e.stopPropagation();
-                          handleVoid(trxId);
-                        }}
-                      >
-                        <Text style={styles.actionBtnText}>🗑 VOID</Text>
-                      </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity
+                      style={styles.voidBtn}
+                      onPress={(e) => {
+                        e.stopPropagation && e.stopPropagation();
+                        handleVoid(trxId);
+                      }}
+                    >
+                      <Text style={styles.actionBtnText}>🗑 VOID</Text>
+                    </TouchableOpacity>
                   </View>
-                )}
-              </TouchableOpacity>
-            );
-          }}
-        />
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* TOMBOL MUAT LEBIH BANYAK */}
+        {filteredData.length > visibleCount && (
+          <TouchableOpacity
+            style={styles.loadMoreBtn}
+            onPress={() => setVisibleCount((c) => c + LIST_STEP)}
+          >
+            <Text style={styles.loadMoreText}>
+              Muat lebih banyak ({visibleCount} dari {filteredData.length})
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* NATIVE DATE PICKER */}
@@ -684,6 +716,27 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     flexWrap: "wrap",
   },
+  filterInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#fff3cd",
+    borderWidth: 1,
+    borderColor: "#ffc107",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  filterInfoText: { fontSize: 13, color: "#856404", flex: 1 },
+  filterReset: {
+    marginLeft: 10,
+    backgroundColor: "#856404",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
+  filterResetText: { color: "#fff", fontWeight: "bold", fontSize: 12 },
   btn: {
     backgroundColor: "#007bff",
     paddingVertical: 10,
@@ -733,6 +786,20 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   qtyInfo: { fontSize: 11, color: "#888", marginTop: 4 },
+  loadMoreBtn: {
+    backgroundColor: "#eef4ff",
+    borderRadius: 8,
+    paddingVertical: 12,
+    marginTop: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#c7d8f5",
+  },
+  loadMoreText: {
+    color: "#1f6feb",
+    fontWeight: "600",
+    fontSize: 13,
+  },
   topItem: {
     flexDirection: "row",
     justifyContent: "space-between",
